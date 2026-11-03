@@ -1,1 +1,9 @@
-Everything
+nápad: sledovat vztah mezi vzrůstem automobilismu a úmrtími chodců po dobu 100 let v určité populaci
+
+hladiny: populace, osobní vozidla, "průmyslová" vozidla
+
+populace
+
+-- sledovat 3 veličiny
+-- aktuální stav cvičení je cca polovina rozsahu
+-- 25-35 prvků
