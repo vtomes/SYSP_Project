@@ -7,3 +7,5 @@ populace
 -- sledovat 3 veličiny
 -- aktuální stav cvičení je cca polovina rozsahu
 -- 25-35 prvků
+
+(((
