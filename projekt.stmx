@@ -8,7 +8,7 @@
 		<product version="4.0" isee:build_number="3710" isee:saved_by_v1="true" lang="en">Stella Professional</product>
 	</header>
 	<ai_information>
-		<status verified="true" trusted="true" tampered="false" uses="false" analyzed="false" log_truncated="false" timestamp="1794667205" algorithm="ed25519" keyurl="https://iseesystems.com/keys/stella01.txt" want_var_info="true" want_var_status="false" want_log="false" sampling="1" signature="IOJCyX2kklTgosKDa/WjItbjLLzpVRYGvqkiMvLccrQCPdQyYEMixTPzEodjXfFyfn39wzdj2XSunjpF3Bl3DQ=="/>
+		<status verified="true" trusted="true" tampered="false" uses="false" analyzed="false" log_truncated="false" timestamp="1794668568" algorithm="ed25519" keyurl="https://iseesystems.com/keys/stella01.txt" want_var_info="true" want_var_status="false" want_log="false" sampling="1" signature="LHiwkolbNev0kCSQkENpeA1JeKrXSmmFXLRuNR8k+vqD4blsD2U4owchDrFE2Mrh3Xvp6p/i+4aeLSlYOdadAQ=="/>
 	</ai_information>
 	<sim_specs isee:sim_duration="1.5" isee:run_prefix="Run" isee:simulation_delay="0.0625" isee:restore_on_start="false" method="Euler" time_units="Hours" isee:instantaneous_flows="false" isee:ignore_module_errors="false" isee:strict_units="true" isee:loop_scores="true" isee:loop_exhaustive_allowed="1000">
 		<start>0</start>
@@ -39,18 +39,24 @@
 				<units>vehicle</units>
 			</stock>
 			<flow name="vehiclesEntering">
+				<eqn>2</eqn>
 				<non_negative/>
 				<units>vehicle/Hours</units>
 			</flow>
 			<flow name="vehiclesLeaving">
+				<eqn>5</eqn>
 				<non_negative/>
 				<units>vehicle/Hours</units>
 			</flow>
 			<aux name="hourOfDay">
 				<eqn>TIME MOD 24</eqn>
 			</aux>
-			<aux name="registeredVehicles"/>
-			<aux name="parkedVehiclesNight"/>
+			<aux name="registeredVehicles">
+				<eqn>73000</eqn>
+			</aux>
+			<aux name="parkedVehiclesNight">
+				<eqn>registeredVehicles*0.65</eqn>
+			</aux>
 		</variables>
 		<views>
 			<style color="black" background="white" font_style="normal" font_weight="normal" text_decoration="none" text_align="center" vertical_text_align="center" font_color="black" font_family="Arial" font_size="10pt" padding="2" border_color="black" border_width="thin" border_style="none">
@@ -100,7 +106,7 @@
 				<isee:iframe color="black" background="white" text_align="left" vertical_text_align="top" font_size="12pt" border_width="thin" border_style="solid"/>
 				<isee:financial_table color="black" background="#E0E0E0" text_align="right" font_size="12pt" hide_border="false" auto_fit="true" first_column_width="250" other_column_width="100" header_font_style="normal" header_font_weight="bold" header_text_decoration="none" header_text_align="center" header_vertical_text_align="center" header_font_color="black" header_font_family="Arial" header_font_size="14pt" header_text_padding="2" header_text_border_color="black" header_text_border_width="thin" header_text_border_style="none"/>
 			</style>
-			<view isee:show_pages="false" background="white" page_width="1090" page_height="761" isee:scroll_x="153" zoom="200" isee:popup_graphs_are_comparative="true" isee:enable_non_negative_highlights="false" type="stock_flow">
+			<view isee:show_pages="false" background="white" page_width="1090" page_height="761" zoom="200" isee:popup_graphs_are_comparative="true" isee:enable_non_negative_highlights="false" type="stock_flow">
 				<style color="black" background="white" font_style="normal" font_weight="normal" text_decoration="none" text_align="center" vertical_text_align="center" font_color="black" font_family="Arial" font_size="10pt" padding="2" border_color="black" border_width="thin" border_style="none">
 					<stock color="blue" background="white" font_color="blue" font_size="9pt" label_side="top">
 						<shape type="rectangle" width="45" height="35"/>
@@ -152,16 +158,20 @@
 						<pt x="447.25" y="103.5"/>
 					</pts>
 				</flow>
-				<aux x="624" y="69" name="hourOfDay"/>
+				<aux x="599" y="65" name="hourOfDay"/>
 				<numeric_display uid="10" x="57.5" y="5.5" width="116" height="25.5" retain_ending_value="true" isee:navigate_to="false" show_name="true">
 					<entity name="hourOfDay"/>
 				</numeric_display>
 				<aux x="606" y="250" name="registeredVehicles"/>
-				<graphics_frame border_width="1.5" border_style="solid" fill="none" uid="11" x="548.5" y="207.5" width="288" height="165">
+				<graphics_frame border_width="1.5" border_style="solid" fill="none" uid="11" x="548.5" y="207.5" width="323" height="236.5">
 					<image width="0" height="0" size_to_parent="false" isee:transparency="0"/>
 				</graphics_frame>
 				<text_box uid="12" x="556" y="214.5" width="66" height="23">Constants</text_box>
-				<aux x="710" y="250" name="parkedVehiclesNight"/>
+				<aux x="700" y="250" name="parkedVehiclesNight"/>
+				<connector uid="13" angle="0">
+					<from>registeredVehicles</from>
+					<to>parkedVehiclesNight</to>
+				</connector>
 			</view>
 		</views>
 	</model>
