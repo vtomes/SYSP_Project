@@ -1,0 +1,774 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xmile version="1.0" xmlns="http://docs.oasis-open.org/xmile/ns/XMILE/v1.0" xmlns:isee="http://iseesystems.com/XMILE">
+	<header>
+		<smile version="1.0" namespace="std, isee"/>
+		<name>sysp_doprava</name>
+		<uuid>b7c4e910-5d8a-4f32-9b1e-6c2a8f4d0e73</uuid>
+		<vendor>isee systems, inc.</vendor>
+		<product version="4.0" isee:build_number="3710" isee:saved_by_v1="true" lang="en">Stella Professional</product>
+	</header>
+	<ai_information>
+		<status verified="false" trusted="false" tampered="false" uses="false" analyzed="false" log_truncated="false" timestamp="1795374897" algorithm="ed25519" keyurl="https://iseesystems.com/keys/stella01.txt" want_var_info="true" want_var_status="false" want_log="false" sampling="1" signature="epaZw7XS0wDaYZKLmEflegGbVk4b+R1FNtXmR3I1yqkdpkbpxasiXJCXv6olHpT8aUxEy89iAbOc5gGHVeiQBw=="/>
+	</ai_information>
+	<sim_specs isee:sim_duration="1.5" isee:run_prefix="Run" isee:simulation_delay="0.0625" isee:restore_on_start="false" method="Euler" time_units="Hours" isee:instantaneous_flows="false" isee:ignore_module_errors="false" isee:strict_units="true" isee:loop_scores="true" isee:loop_exhaustive_allowed="1000">
+		<start>0</start>
+		<stop>24</stop>
+		<dt reciprocal="true">4</dt>
+	</sim_specs>
+	<isee:prefs saved_runs="5" keep="false" show_module_prefix="true" live_update_on_drag="true" show_restore_buttons="false" layer="model" isee:design="Deluxe Prev-Next Blue Green Pastel" isee:design_custom="false" interface_scale_ui="true" interface_max_page_width="10000" interface_max_page_height="10000" interface_min_page_width="0" interface_min_page_height="0" rifp="true"/>
+	<isee:multiplayer_settings include_chat="true" allow_observers="false" advance_time_increment="1" max_advance_time_in_ms="0" model_stops_when_players_drop="false" observer_start_page="home_page" enabled="false"/>
+	<isee:time_formats default_format="Builtin">
+		<isee:time_format name="Builtin" type="adaptive"/>
+	</isee:time_formats>
+	<isee:number_format_extenders/>
+	<default_format/>
+	<isee:sensi_specs_list active_index="0">
+		<isee:sensi_specs name="Citlivost_Doba_Odklizeni_IZS" method="multivariate" runs="5">
+			<isee:variable starting_value="0.3" ending_value="1.2" type="incremental" min="0.3" max="1.2" seed="12345" name="avgIncidentClearanceTime" num_samples="5"/>
+		</isee:sensi_specs>
+		<isee:sensi_specs name="Citlivost_Podil_Elektromobilu" method="multivariate" runs="5">
+			<isee:variable starting_value="0.012" ending_value="0.5" type="incremental" min="0.012" max="0.5" seed="12345" name="evFleetShare" num_samples="5"/>
+		</isee:sensi_specs>
+	</isee:sensi_specs_list>
+	<model_units>
+		<unit name="Hours">
+			<eqn/>
+			<alias>hr</alias>
+			<alias>hour</alias>
+		</unit>
+		<unit name="vehicle">
+			<eqn/>
+			<alias>vehicles</alias>
+		</unit>
+		<unit name="incident">
+			<eqn/>
+			<alias>incidents</alias>
+		</unit>
+		<unit name="kg">
+			<eqn/>
+			<alias>Kilograms</alias>
+		</unit>
+		<unit name="km">
+			<eqn/>
+			<alias>kilometers</alias>
+		</unit>
+		<unit name="mm">
+			<eqn/>
+			<alias>millimeters</alias>
+		</unit>
+		<unit name="min">
+			<eqn/>
+			<alias>Minutes</alias>
+		</unit>
+		<unit name="Dimensionless">
+			<eqn>1</eqn>
+			<alias>dmnl</alias>
+			<alias>unitless</alias>
+		</unit>
+	</model_units>
+	<model>
+		<variables>
+			<stock name="vehiclesInTraffic">
+				<doc>Tymova hladina z projekt.stmx: aktualni pocet aktivnich vozidel v silnicni siti Pardubic (pocatecni stav 200 vozidel o pulnoci).</doc>
+				<eqn>200</eqn>
+				<inflow>vehiclesEntering</inflow>
+				<outflow>vehiclesLeaving</outflow>
+				<non_negative/>
+				<units>vehicle</units>
+			</stock>
+			<stock name="Active Traffic Incidents">
+				<doc>Aktualni pocet aktivnich dopravnich nehod a poruch blokujicich jizdni pruhy v Pardubicich (zdroj: Policie CR, PUMM Pardubice, CKP, FHWA/ASCE).</doc>
+				<eqn>0</eqn>
+				<inflow>Incident_Occurrence_Rate</inflow>
+				<outflow>Incident_Clearance_Rate</outflow>
+				<non_negative/>
+				<units>incident</units>
+			</stock>
+			<stock name="Cumulative CO2 Emissions">
+				<doc>Kumulativni emise CO2 ze silnicni dopravy v Pardubicich za 24 hodin v kg CO2 (zdroj: EMEP/EEA Guidebook 2023/2025 COPERT, CDV, CSD 2020).</doc>
+				<eqn>0</eqn>
+				<inflow>CO2_Emission_Rate</inflow>
+				<non_negative/>
+				<units>kg</units>
+			</stock>
+			<flow name="vehiclesEntering">
+				<doc>Hodinovy pritok vozidel do silnicni site Pardubic dle denni variace mistnich komunikaci (metodika TP 189) a dat CSD 2020 / PUMM Pardubice.</doc>
+				<eqn>dailyTripsPardubice * diurnalTrafficShareTP189</eqn>
+				<non_negative/>
+				<units>vehicle/Hours</units>
+			</flow>
+			<flow name="vehiclesLeaving">
+				<doc>Hodinovy odtok vozidel ze site dle Littleova zakona (aktualni rychlost / prumerna delka jizdy 12 km).</doc>
+				<eqn>vehiclesInTraffic * (actualAverageSpeed / avgTripLengthKm)</eqn>
+				<non_negative/>
+				<units>vehicle/Hours</units>
+			</flow>
+			<flow name="Incident Occurrence Rate">
+				<doc>Rychlost vzniku novych dopravnich incidentu (nehody + poruchy blokujici pruhy) v zavislosti na provozu, desti a kongesci.</doc>
+				<eqn>vehiclesInTraffic * baseAccidentRate * weatherAccidentMultiplier * congestionIncidentFactor</eqn>
+				<non_negative/>
+				<units>incident/Hours</units>
+			</flow>
+			<flow name="Incident Clearance Rate">
+				<doc>Rychlost uvolnovani komunikaci slozkami IZS a odtahovou sluzbou (prumerna doba odstraneni 0,65 h = 39 min dle FHWA TIM / ASCE).</doc>
+				<eqn>Active_Traffic_Incidents / avgIncidentClearanceTime</eqn>
+				<non_negative/>
+				<units>incident/Hours</units>
+			</flow>
+			<flow name="CO2 Emission Rate">
+				<doc>Okamzita hodinova produkce emisi CO2 vsech aktivnich vozidel (kg CO2/h) dle COPERT/EMEP-EEA se zohlednenim tezke dopravy, studeneho startu (9,8 C) a elektromobilu.</doc>
+				<eqn>vehiclesInTraffic * actualAverageSpeed * speedCO2FactorKgPerKm * (1 + heavyVehicleShare * 1.5) * coldStartTempFactor * (1 - evFleetShare)</eqn>
+				<non_negative/>
+				<units>kg/Hours</units>
+			</flow>
+			<aux name="hourOfDay">
+				<doc>Aktualni hodina dne (0-24 h), zachovano z tymoveho projekt.stmx.</doc>
+				<eqn>TIME MOD 24</eqn>
+				<units>Hours</units>
+			</aux>
+			<aux name="registeredVehicles">
+				<doc>Registrovana vozidla v Pardubicich (zachovano z projekt.stmx; CSU 2025: 321,5 tis. OA v kraji).</doc>
+				<eqn>73000</eqn>
+				<units>vehicle</units>
+			</aux>
+			<aux name="parkedVehiclesNight">
+				<doc>Nocni parkujici vozidla (zachovano z projekt.stmx pro napojeni 4. hladiny parkedVehicles).</doc>
+				<eqn>registeredVehicles * 0.65</eqn>
+				<units>vehicle</units>
+			</aux>
+			<aux name="dailyTripsPardubice">
+				<doc>Celkovy denni objem jizd v mestske a primestske siti Pardubic (kalibrovano na CSD 2020/2025 a PUMM Pardubice).</doc>
+				<eqn>150000</eqn>
+				<units>vehicle</units>
+			</aux>
+			<aux name="diurnalTrafficShareTP189">
+				<doc>Hodinovy podil denni intenzity dopravy na mistnich komunikacich (metodika TP 189, Tabulka 2).</doc>
+				<eqn>hourOfDay</eqn>
+				<gf>
+					<xscale min="0" max="24"/>
+					<yscale min="0" max="0.1"/>
+					<ypts>0.002,0.001,0.001,0.002,0.007,0.03,0.0589,0.0789,0.0639,0.0659,0.0659,0.0639,0.0659,0.0699,0.0889,0.0919,0.0739,0.0569,0.042,0.031,0.017,0.011,0.008,0.003,0.002</ypts>
+				</gf>
+				<units>1/Hours</units>
+			</aux>
+			<aux name="avgTripLengthKm">
+				<doc>Prumerna delka modelovane jizdy v uzlu Pardubice a jeho dojizdkovem zazemi (12 km).</doc>
+				<eqn>12</eqn>
+				<units>km</units>
+			</aux>
+			<aux name="freeFlowSpeed">
+				<doc>Efektivni volna prujezdna rychlost v mestske siti Pardubic vcetne svetelnych krizovatek (42 km/h).</doc>
+				<eqn>42</eqn>
+				<units>km/Hours</units>
+			</aux>
+			<aux name="baseRoadCapacity">
+				<doc>Zakladni soucasna kapacita hlavni silnicni site Pardubic za idealnich podminek (5300 vozidel).</doc>
+				<eqn>5300</eqn>
+				<units>vehicle</units>
+			</aux>
+			<aux name="effectiveRoadCapacity">
+				<doc>Efektivni kapacita silnicni site ponizena o vliv srazek a aktivnich dopravnich incidentu.</doc>
+				<eqn>baseRoadCapacity * weatherCapacityFactor * incidentCapacityFactor</eqn>
+				<units>vehicle</units>
+			</aux>
+			<aux name="volumeToCapacityRatio">
+				<doc>Pomer zatizeni ke kapacite site (V/C) pro BPR funkci rychlosti.</doc>
+				<eqn>vehiclesInTraffic / effectiveRoadCapacity</eqn>
+				<units>Dimensionless</units>
+			</aux>
+			<aux name="actualAverageSpeed">
+				<doc>Aktualni prumerna rychlost dopravy dle BPR rovnice (dolni mez kolony ~5 km/h).</doc>
+				<eqn>freeFlowSpeed * MAX(0.12, 1 / (1 + 0.15 * (volumeToCapacityRatio ^ 4)))</eqn>
+				<units>km/Hours</units>
+			</aux>
+			<aux name="minPerHour">
+				<doc>Prepocet hodin na minuty pro prisnou kontrolu jednotek (strict_units).</doc>
+				<eqn>60</eqn>
+				<units>min/Hours</units>
+			</aux>
+			<aux name="averageCommuteDelayMin">
+				<doc>Prumerne zdrzeni na modelove 12km ceste oproti volnemu prujezdu (v minutach).</doc>
+				<eqn>((avgTripLengthKm / actualAverageSpeed) - (avgTripLengthKm / freeFlowSpeed)) * minPerHour</eqn>
+				<units>min</units>
+			</aux>
+			<aux name="hourlyPrecipitationMm">
+				<doc>Hodinovy uhrn srazek (mm/h). Scenar 1: prumerny den roku v Pardubicich dle CHMU H3PARD01 (554,8 mm/rok = 1,52 mm/den = 0,0633 mm/h). Pro Scenar 2 nahradte profilem deste (23,2 mm/den).</doc>
+				<eqn>hourOfDay</eqn>
+				<gf>
+					<xscale min="0" max="24"/>
+					<yscale min="0" max="6"/>
+					<ypts>0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633,0.0633</ypts>
+				</gf>
+				<units>mm/Hours</units>
+			</aux>
+			<aux name="rainCapacitySensitivity">
+				<doc>Citlivost poklesu kapacity silnice na intenzitu deste (zdroj: FHWA Road Weather Management, pokles 10-30 % pri silnem desti).</doc>
+				<eqn>0.055</eqn>
+				<units>Hours/mm</units>
+			</aux>
+			<aux name="weatherCapacityFactor">
+				<doc>Koeficient zachovane kapacity silnic za deste (min. 0,72 pri silnem desti dle FHWA).</doc>
+				<eqn>1 - MIN(0.28, hourlyPrecipitationMm * rainCapacitySensitivity)</eqn>
+				<units>Dimensionless</units>
+			</aux>
+			<aux name="rainAccidentSensitivity">
+				<doc>Citlivost narustu rizika nehod na intenzitu srazek (zdroj: PMC 2025 RRF=1,38 v desti; FHWA).</doc>
+				<eqn>0.16</eqn>
+				<units>Hours/mm</units>
+			</aux>
+			<aux name="weatherAccidentMultiplier">
+				<doc>Nasobitel rizika vzniku incidentu vlivem deste a mokre vozovky (max. 1,85x).</doc>
+				<eqn>1 + MIN(0.85, hourlyPrecipitationMm * rainAccidentSensitivity)</eqn>
+				<units>Dimensionless</units>
+			</aux>
+			<aux name="baseAccidentRate">
+				<doc>Zakladni mira incidentu (nehody + poruchy blokujici pruh) na vozohodinu v Pardubicich (kalibrovano na PUMM 742 nehod/rok, CKP 3,1x, ASCE).</doc>
+				<eqn>0.00013</eqn>
+				<units>incident/(vehicle*Hours)</units>
+			</aux>
+			<aux name="congestionIncidentFactor">
+				<doc>Zpetnovazebni vliv hustoty provozu (V/C &gt; 0,6) na vznik sekundarnich kolizi a poruch v kolonach.</doc>
+				<eqn>1 + MIN(0.45, MAX(0, (volumeToCapacityRatio - 0.6) * 0.45))</eqn>
+				<units>Dimensionless</units>
+			</aux>
+			<aux name="avgIncidentClearanceTime">
+				<doc>Prumerna doba uvolneni vozovky po incidentu: 0,65 h = 39 min (FHWA RCT 36,2 min, ASCE 36,7 min, ICT 54,8 min).</doc>
+				<eqn>0.65</eqn>
+				<units>Hours</units>
+			</aux>
+			<aux name="capacityLossPerIncident">
+				<doc>Modelovy koeficient poklesu prujezdne kapacity mestske site na 1 aktivni blokujici incident (agregace z HCM Exhibit 10-17).</doc>
+				<eqn>0.16</eqn>
+				<units>1/incident</units>
+			</aux>
+			<aux name="incidentCapacityFactor">
+				<doc>Koeficient zachovane kapacity site pri aktivnich dopravnich incidentech.</doc>
+				<eqn>1 / (1 + capacityLossPerIncident * Active_Traffic_Incidents)</eqn>
+				<units>Dimensionless</units>
+			</aux>
+			<aux name="speedCO2FactorKgPerKm">
+				<doc>Kalibrovana aproximace U-krivky emisniho faktoru CO2 osobniho vozidla v CR (kg CO2/vozokm) pro 5-60 km/h (EMEP/EEA Guidebook 2023/2025 COPERT, stari parku 15,9-16,4 let).</doc>
+				<eqn>actualAverageSpeed</eqn>
+				<gf>
+					<yscale min="0.05" max="0.15"/>
+					<xpts>5,10,15,20,25,30,40,50,60</xpts>
+					<ypts>0.46,0.325,0.265,0.225,0.198,0.182,0.162,0.152,0.15</ypts>
+				</gf>
+				<units>kg/(vehicle*km)</units>
+			</aux>
+			<aux name="heavyVehicleShare">
+				<doc>Podil tezkych a uzitkovych vozidel v mestskem provozu Pardubic (zdroj: CSD 2020: II/324 8,1 %, I/37 17,2-20,2 %, prumer mesta 12 %).</doc>
+				<eqn>0.12</eqn>
+				<units>Dimensionless</units>
+			</aux>
+			<aux name="coldStartTempFactor">
+				<doc>Korekce studenych startu pro prumernou rocni teplotu Pardubic 9,8 C (CHMU H3PARD01) dle EMEP/EEA pri podilu 20 % studene jizdy: 1 + 0,20*(1,47 - 0,009*9,8 - 1) = 1,076.</doc>
+				<eqn>1.076</eqn>
+				<units>Dimensionless</units>
+			</aux>
+			<aux name="evFleetShare">
+				<doc>Podil ciste elektrickych vozidel (BEV) ve vozovem parku CR k 10/2026: ~82 tis. z 6,8 mil. = 1,2 % (zdroj: CDV Cista doprava).</doc>
+				<eqn>0.012</eqn>
+				<units>Dimensionless</units>
+			</aux>
+		</variables>
+		<views>
+			<style color="black" background="white" font_style="normal" font_weight="normal" text_decoration="none" text_align="center" vertical_text_align="center" font_color="black" font_family="Arial" font_size="10pt" padding="2" border_color="black" border_width="thin" border_style="none">
+				<text_box color="black" background="white" text_align="left" vertical_text_align="top" font_size="12pt"/>
+				<isee:loop_indicator color="black" background="white" vertical_text_align="top" font_size="12pt"/>
+				<numeric_display color="white" background="white" font_size="12pt" border_width="thin" border_style="solid" isee:transparent="false" isee:show_divider="true" isee:show_bounding_box="true" label_side="left"/>
+				<graph color="black" background="white" font_size="11pt" axis_color="#666666" grid_color="#C8C8C8" isee:graph_area_color="white" legend_position="bottom" isee:transparent="false" isee:hide_border="false" axis_title_font_style="normal" axis_title_font_weight="normal" axis_title_text_decoration="none" axis_title_text_align="center" axis_title_vertical_text_align="center" axis_title_font_color="black" axis_title_font_family="Arial" axis_title_font_size="12pt" axis_title_text_padding="2" axis_title_text_border_color="black" axis_title_text_border_width="thin" axis_title_text_border_style="none" axis_label_font_style="normal" axis_label_font_weight="normal" axis_label_text_decoration="none" axis_label_text_align="center" axis_label_vertical_text_align="center" axis_label_font_color="black" axis_label_font_family="Arial" axis_label_font_size="9pt" axis_label_text_padding="2" axis_label_text_border_color="black" axis_label_text_border_width="thin" axis_label_text_border_style="none">
+					<isee:series_styles>
+						<isee:series_style color="blue" thickness="1"/>
+						<isee:series_style color="red" thickness="1" pen_style="dot_dashed"/>
+						<isee:series_style color="fuchsia" thickness="1" pen_style="dotted"/>
+						<isee:series_style color="#008F44" thickness="1" pen_style="dashed"/>
+						<isee:series_style color="#FF7F00" thickness="1"/>
+						<isee:series_style color="#7F00FF" thickness="1" pen_style="dot_dashed"/>
+						<isee:series_style color="#0CA0FF" thickness="1" pen_style="dotted"/>
+						<isee:series_style color="lime" thickness="1" pen_style="dashed"/>
+						<isee:series_style color="#FF007F" thickness="1"/>
+						<isee:series_style color="aqua" thickness="1" pen_style="dot_dashed"/>
+						<isee:series_style color="#F586FF" thickness="1" pen_style="dotted"/>
+						<isee:series_style color="black" thickness="1" pen_style="dashed"/>
+						<isee:series_style color="#C8C8C8" thickness="1"/>
+					</isee:series_styles>
+				</graph>
+				<table color="black" background="#E0E0E0" text_align="right" orientation="vertical" wrap_text="false" isee:auto_fit="true" isee:use_alternate_row_colors="true" isee:unlimited_table_length="false" blank_column_width="80" column_width="125" interval="1" report_balances="beginning" report_flows="instantaneous" header_font_style="normal" header_font_weight="normal" header_text_decoration="none" header_text_align="center" header_vertical_text_align="center" header_font_color="black" header_font_family="Arial" header_font_size="12pt" header_text_padding="2" header_text_border_color="black" header_text_border_width="thin" header_text_border_style="none"/>
+				<button color="black" background="#E0E0E0" font_size="12pt" border_width="thin" border_style="solid" transparent="false" corner_radius="2" isee:flat="false" icon_side="top" isee:highlight_on_hover="false" isee:highlight_color="#959595"/>
+				<isee:annotation color="black" background="white" font_size="12pt" border_width="thin" border_style="solid" transparent="false" corner_radius="0" isee:flat="false" icon_side="top" isee:highlight_on_hover="false" isee:highlight_color="#959595" popup_corner_radius="0" popup_background_color="#FFFECF"/>
+				<slider color="black" background="white" font_size="12pt" num_ticks="3" label_side="top" wrap_title="true" vertical="false" isee:fancy_appearance="false" isee:show_hover_tip="when_deciding" input_expands="true" input_width="100"/>
+				<isee:stacked_container color="black" background="white" text_align="left" vertical_text_align="top" font_size="12pt" padding="6 8" border_color="#999999" border_width="thin" border_style="solid" item_spacing="0" corner_radius="4" selected_item_color="black" selected_item_background="white" item_background="#DDDDDD" transparent_bg="false"/>
+				<isee:dual_slider color="black" background="white" font_size="12pt" num_ticks="3" label_side="top" wrap_title="true" isee:show_hover_tip="when_deciding" input_expands="true" input_width="100"/>
+				<isee:sim_speed_slider color="black" background="white"/>
+				<isee:time_slider color="black" background="white"/>
+				<isee:pie_input color="black" background="white" font_size="12pt" legend_position="bottom" isee:transparent="false"/>
+				<knob color="black" background="white" font_size="12pt" label_side="bottom" wrap_title="true"/>
+				<numeric_input color="black" background="white" font_size="12pt" label_side="left" wrap_title="true" input_expands="false" input_width="100"/>
+				<isee:dropdown_input color="black" background="white" font_size="12pt" label_side="left" wrap_title="true" input_expands="false" input_width="100"/>
+				<switch color="black" background="white" font_size="12pt" label_side="top" wrap_title="true" isee:appearance="switch" isee:on_color="green"/>
+				<options color="black" background="white" appearance="radio-buttons" arrangement="vertical"/>
+				<graphical_input color="black" background="white" font_size="12pt" isee:show_hover_tip="true"/>
+				<group_input color="black" background="white" font_size="12pt"/>
+				<lamp color="black" background="white" font_size="9pt"/>
+				<gauge color="black" background="white" font_size="9pt" needle_color="#F09F72" bar_color="#EEEEEE" bar_progress_color="black" appearance="radial" num_major_ticks="11" num_minor_ticks="1" show_numeric_value="true"/>
+				<isee:spatial_map color="black" background="white" font_size="12pt"/>
+				<isee:animation_object color="black" background="white" font_size="12pt"/>
+				<isee:navigation_widget color="black" background="white" text_align="left" vertical_text_align="top" font_size="12pt" padding="6 8" border_color="#999999" border_width="thin" border_style="solid" item_spacing="6" appearance="tabs" corner_radius="4" selected_item_color="black" selected_item_background="white" item_background="#DDDDDD" transparent_bg="false"/>
+				<isee:shape color="black" background="white" text_align="left" vertical_text_align="top" font_size="12pt" border_width="thin" border_style="solid" opacity="1" transparent_background="true" corner_radius="1"/>
+				<isee:selector color="black" background="white" text_align="left" vertical_text_align="top" font_size="12pt"/>
+				<isee:iframe color="black" background="white" text_align="left" vertical_text_align="top" font_size="12pt" border_width="thin" border_style="solid"/>
+				<isee:financial_table color="black" background="white" text_align="right" font_size="12pt" hide_border="false" auto_fit="true" first_column_width="250" other_column_width="100" header_font_style="normal" header_font_weight="bold" header_text_decoration="none" header_text_align="center" header_vertical_text_align="center" header_font_color="black" header_font_family="Arial" header_font_size="14pt" header_text_padding="2" header_text_border_color="black" header_text_border_width="thin" header_text_border_style="none"/>
+			</style>
+			<view isee:show_pages="true" background="white" page_width="1090" page_height="761" isee:page_cols="2" isee:page_rows="8" isee:popup_graphs_are_comparative="true" isee:enable_non_negative_highlights="false" type="stock_flow">
+				<style color="black" background="white" font_style="normal" font_weight="normal" text_decoration="none" text_align="center" vertical_text_align="center" font_color="black" font_family="Arial" font_size="10pt" padding="2" border_color="black" border_width="thin" border_style="none">
+					<stock color="blue" background="white" font_color="blue" font_size="9pt" label_side="top">
+						<shape type="rectangle" width="45" height="35"/>
+					</stock>
+					<flow color="blue" background="white" font_color="blue" font_size="9pt" label_side="bottom">
+						<shape type="circle" radius="18"/>
+					</flow>
+					<isee:placeholder color="black" background="white" label_side="bottom"/>
+					<module color="black" background="white" label_side="top">
+						<shape type="rectangle" width="55" height="45"/>
+					</module>
+					<aux color="blue" background="white" font_color="blue" font_size="9pt" label_side="bottom">
+						<shape type="circle" radius="18"/>
+					</aux>
+					<group color="black" background="white"/>
+					<connector color="#FF007F" background="white" font_color="#FF007F" font_size="9pt" isee:thickness="1"/>
+					<text_box color="black" background="white"/>
+					<isee:loop_indicator color="black" background="white"/>
+					<numeric_display color="black" background="white" isee:transparent="false" isee:show_divider="true" isee:show_bounding_box="true" label_side="left"/>
+					<graph color="black" background="white" axis_color="#666666" grid_color="#C8C8C8" isee:graph_area_color="white" legend_position="bottom" isee:transparent="false" isee:hide_border="false" axis_title_font_style="normal" axis_title_font_weight="normal" axis_title_text_decoration="none" axis_title_text_align="center" axis_title_vertical_text_align="center" axis_title_font_color="black" axis_title_font_family="Arial" axis_title_font_size="12pt" axis_title_text_padding="2" axis_title_text_border_color="black" axis_title_text_border_width="thin" axis_title_text_border_style="none" axis_label_font_style="normal" axis_label_font_weight="normal" axis_label_text_decoration="none" axis_label_text_align="center" axis_label_vertical_text_align="center" axis_label_font_color="black" axis_label_font_family="Arial" axis_label_font_size="9pt" axis_label_text_padding="2" axis_label_text_border_color="black" axis_label_text_border_width="thin" axis_label_text_border_style="none">
+						<isee:series_styles>
+							<isee:series_style color="blue" thickness="1"/>
+							<isee:series_style color="red" thickness="1" pen_style="dot_dashed"/>
+							<isee:series_style color="fuchsia" thickness="1" pen_style="dotted"/>
+							<isee:series_style color="#008F44" thickness="1" pen_style="dashed"/>
+							<isee:series_style color="#FF7F00" thickness="1"/>
+							<isee:series_style color="#7F00FF" thickness="1" pen_style="dot_dashed"/>
+							<isee:series_style color="#0CA0FF" thickness="1" pen_style="dotted"/>
+							<isee:series_style color="lime" thickness="1" pen_style="dashed"/>
+							<isee:series_style color="#FF007F" thickness="1"/>
+							<isee:series_style color="aqua" thickness="1" pen_style="dot_dashed"/>
+							<isee:series_style color="#F586FF" thickness="1" pen_style="dotted"/>
+							<isee:series_style color="black" thickness="1" pen_style="dashed"/>
+							<isee:series_style color="#C8C8C8" thickness="1"/>
+						</isee:series_styles>
+					</graph>
+					<table color="black" background="white" orientation="vertical" wrap_text="false" isee:auto_fit="true" isee:use_alternate_row_colors="true" isee:unlimited_table_length="false" blank_column_width="80" column_width="125" interval="1" report_balances="beginning" report_flows="instantaneous" header_font_style="normal" header_font_weight="normal" header_text_decoration="none" header_text_align="center" header_vertical_text_align="center" header_font_color="black" header_font_family="Arial" header_font_size="12pt" header_text_padding="2" header_text_border_color="black" header_text_border_width="thin" header_text_border_style="none"/>
+				</style>
+				<text_box font_weight="bold" font_size="24pt" uid="1" x="80" y="30" width="1200" height="65">Dynamika městské dopravy v Pardubicích: Dopravní incidenty a emise CO2 (24 hodin)</text_box>
+				<text_box text_align="left" font_size="11pt" padding="8" border_width="thin" border_style="solid" uid="2" x="80" y="115" width="680" height="360">1. Představení tématu a vymezení problematiky:
+Model simuluje 24hodinový cyklus silniční dopravy ve statutárním městě Pardubice (92,7 tis. obyvatel, 150 tis. denních jízd, 1,80 mil. vozokm) pro jeden zprůměrovaný den v roce podle reálných dat ŘSD, ČSÚ, Policie ČR, ČHMÚ a EMEP/EEA [1-6]. Tato část projektu se zaměřuje na dvě vzájemně provázané hladiny:
+• Active_Traffic_Incidents (incidenty blokující jízdní pruhy — nehody a poruchy vozidel),
+• Cumulative_CO2_Emissions (celkové kumulativní emise CO2 v kg za 24 hodin).
+
+2. Cíl projektu a výzkumná otázka:
+Cílem je kvantifikovat zpětnovazební dopad dopravních incidentů a deště na kongesci a emise CO2 v Pardubicích a porovnat účinnost zrychlení zásahů IZS (TIM) oproti elektrifikaci vozového parku.
+Výzkumná otázka (VO): Jak silně zvyšují dopravní incidenty a intenzivní srážky celkové 24hodinové emise CO2 a dopravní zdržení v Pardubicích, a v jaké míře lze tyto negativní dopady omezit zkrácením doby odklízení incidentů (TIM) a zvýšením podílu elektromobilů (BEV)?</text_box>
+				<text_box text_align="left" font_size="11pt" padding="8" border_width="thin" border_style="solid" uid="3" x="780" y="115" width="500" height="360">3. Analyzované scénáře:
+• Scénář 1 — Průměrný den v roce (Baseline):
+  Celoroční srážkový normál ČHMÚ H3PARD01 (554,8 mm/rok = 0,0633 mm/h), doba odklízení IZS 39 min (0,65 h), podíl BEV 1,2 % [3, 5, 8].
+
+• Scénář 2 — Deštivý pracovní den ve špičkách (Zátěžový):
+  Frontální déšť 23,2 mm/den (kulminace 4,2 mm/h v 8:00 a 4,4 mm/h v 16:00) snižující kapacitu silnic až o 24 % a zvyšující riziko nehod o 70 % [5, 6].
+
+• Scénář 3 — Rychlý zásah TIM (24 min) + 25 % BEV:
+  Zkrácení průměrného uvolnění pruhu na 24 min (0,40 h) a navýšení podílu elektromobilů na 25 % (vyhodnoceno pro průměrný den S3 i zátěžový déšť S3B) [6, 8].</text_box>
+				<text_box text_align="left" padding="8" border_width="thin" border_style="solid" uid="4" x="80" y="495" width="760" height="260">4. Přehled hlavních odborných zdrojů (plné citace na Straně 6):
+[1] ŘSD ČR &amp; ČSÚ — Celostátní sčítání dopravy 2020/2025 (CSD2020/2025) &amp; PUMM Pardubice: intenzity na I/37 (33 330–34 483 voz/24h, 20,2 % TV), II/324 (26 772 voz/24h, 8,1 % TV), denní profil TP 189.
+[2] Policie ČR, ČSÚ &amp; ČKP (2025–2026): nehodovost v okrese Pardubice (1 383 nehod v 2025) a městě Pardubice (742 v PUMM), poměr škod ČKP/PČR (~3,1x) po navýšení limitu na 200 tis. Kč.
+[3] FHWA Road Weather Management &amp; HCM 2010: vliv deště na kapacitu (-10 až -30 %), riziko nehod (RRF = 1,38) a ztráta kapacity při blokaci pruhu (Exhibit 10-17).
+[4] FHWA Traffic Incident Management (TIM) &amp; ASCE: doba uvolnění vozovky RCT 36,2–36,7 min, ICT 54,8 min, podíl poruch vozidel 58–61,6 %.
+[5] ČHMÚ stanice Pardubice, letiště (H3PARD01): normál 1991–2020 (554,8 mm/rok; 9,8 °C).
+[6] EMEP/EEA Guidebook 2023/2025 (COPERT) &amp; CDV / OECD (2025–2026): emisní faktory CO2, stáří parku ČR 15,9–16,4 let, podíl BEV 1,2 %.</text_box>
+				<graphics_frame fill="none" uid="5" x="860" y="495" width="420" height="260">
+					<image width="0" height="0" size_to_parent="false" isee:transparency="0"/>
+				</graphics_frame>
+				<text_box font_style="italic" uid="55" x="875" y="595" width="390" height="65">Místo pro vložení mapy dopravní sítě Pardubic (I/37, I/36, II/324).
+Ve Stelle zaškrtněte: Embed in Model File (velikost &lt; 300 kB).</text_box>
+				<text_box font_weight="bold" text_align="left" font_size="13pt" uid="6" x="80" y="780" width="840" height="50">Tým: Daniel Bláha, [Kolega 2], [Kolega 3]  |  FIM UHK — předmět KIT/SYSP (podzim 2026)</text_box>
+				<text_box font_style="italic" text_align="right" font_size="16pt" uid="7" x="1000" y="780" width="280" height="50">Strana 1 - Úvod</text_box>
+				<text_box font_weight="bold" font_size="22pt" uid="10" x="480" y="895" width="400" height="50">Model (SFD diagram)</text_box>
+				<numeric_display uid="11" x="80" y="895" width="160" height="34" retain_ending_value="true" isee:navigate_to="false" show_name="true">
+					<entity name="hourOfDay"/>
+				</numeric_display>
+				<graphics_frame border_width="1.5" border_style="solid" fill="none" uid="12" x="70" y="955" width="580" height="550">
+					<image width="0" height="0" size_to_parent="false" isee:transparency="0"/>
+				</graphics_frame>
+				<text_box font_weight="bold" uid="121" x="80" y="960" width="290" height="24">Sektor 1: Doprava (projekt.stmx)</text_box>
+				<graphics_frame border_width="1.5" border_style="solid" fill="none" uid="13" x="670" y="955" width="650" height="395">
+					<image width="0" height="0" size_to_parent="false" isee:transparency="0"/>
+				</graphics_frame>
+				<text_box font_weight="bold" uid="131" x="680" y="960" width="320" height="24">Sektor 2: Incidenty a počasí</text_box>
+				<graphics_frame border_width="1.5" border_style="solid" fill="none" uid="14" x="670" y="1370" width="410" height="365">
+					<image width="0" height="0" size_to_parent="false" isee:transparency="0"/>
+				</graphics_frame>
+				<text_box font_weight="bold" uid="141" x="680" y="1375" width="260" height="24">Sektor 3: Emise CO2</text_box>
+				<graphics_frame border_width="1.5" border_style="solid" fill="none" uid="15" x="1100" y="1370" width="220" height="240">
+					<image width="0" height="0" size_to_parent="false" isee:transparency="0"/>
+				</graphics_frame>
+				<text_box font_weight="bold" uid="151" x="1110" y="1375" width="180" height="24">Constants (projekt.stmx)</text_box>
+				<text_box font_style="italic" text_align="right" font_size="16pt" uid="16" x="1000" y="1755" width="280" height="45">Strana 2 - Model</text_box>
+				<isee:loop_indicator color="blue" text="R1+" orientation="clockwise" uid="70" x="435" y="1250" width="32" height="32"/>
+				<isee:loop_indicator color="red" text="R2+" orientation="clockwise" uid="71" x="805" y="1215" width="32" height="32"/>
+				<isee:loop_indicator color="#008F44" text="B1-" orientation="counter_clockwise" uid="72" x="1015" y="1085" width="32" height="32"/>
+				<stock label_side="top" x="380" y="1150" name="vehiclesInTraffic"/>
+				<stock label_side="top" x="960" y="1150" name="Active Traffic Incidents"/>
+				<stock label_side="bottom" x="960" y="1570" name="Cumulative CO2 Emissions"/>
+				<flow label_side="top" x="255" y="1150" name="vehiclesEntering">
+					<pts>
+						<pt x="150" y="1150"/>
+						<pt x="357.5" y="1150"/>
+					</pts>
+				</flow>
+				<flow label_side="top" x="510" y="1150" name="vehiclesLeaving">
+					<pts>
+						<pt x="402.5" y="1150"/>
+						<pt x="620" y="1150"/>
+					</pts>
+				</flow>
+				<flow label_side="top" x="830" y="1150" name="Incident Occurrence Rate">
+					<pts>
+						<pt x="720" y="1150"/>
+						<pt x="937.5" y="1150"/>
+					</pts>
+				</flow>
+				<flow label_side="top" x="1090" y="1150" name="Incident Clearance Rate">
+					<pts>
+						<pt x="982.5" y="1150"/>
+						<pt x="1200" y="1150"/>
+					</pts>
+				</flow>
+				<flow label_side="bottom" x="830" y="1570" name="CO2 Emission Rate">
+					<pts>
+						<pt x="720" y="1570"/>
+						<pt x="937.5" y="1570"/>
+					</pts>
+				</flow>
+				<aux x="150" y="1020" name="hourOfDay"/>
+				<aux x="150" y="1260" name="dailyTripsPardubice"/>
+				<aux x="255" y="1030" name="diurnalTrafficShareTP189"/>
+				<aux x="510" y="1030" name="avgTripLengthKm"/>
+				<aux x="510" y="1270" name="freeFlowSpeed"/>
+				<aux x="280" y="1360" name="baseRoadCapacity"/>
+				<aux x="380" y="1440" name="effectiveRoadCapacity"/>
+				<aux x="490" y="1390" name="volumeToCapacityRatio"/>
+				<aux x="600" y="1340" name="actualAverageSpeed"/>
+				<aux x="600" y="1210" name="averageCommuteDelayMin"/>
+				<aux x="740" y="1010" name="hourlyPrecipitationMm"/>
+				<aux x="620" y="1010" name="rainCapacitySensitivity"/>
+				<aux x="660" y="1095" name="weatherCapacityFactor"/>
+				<aux x="900" y="1010" name="rainAccidentSensitivity"/>
+				<aux x="850" y="1075" name="weatherAccidentMultiplier"/>
+				<aux x="740" y="1245" name="baseAccidentRate"/>
+				<aux x="700" y="1315" name="congestionIncidentFactor"/>
+				<aux x="1120" y="1030" name="avgIncidentClearanceTime"/>
+				<aux x="1040" y="1265" name="capacityLossPerIncident"/>
+				<aux x="910" y="1280" name="incidentCapacityFactor"/>
+				<aux x="730" y="1450" name="speedCO2FactorKgPerKm"/>
+				<aux x="720" y="1680" name="heavyVehicleShare"/>
+				<aux x="850" y="1680" name="coldStartTempFactor"/>
+				<aux x="980" y="1680" name="evFleetShare"/>
+				<aux x="1150" y="1445" name="registeredVehicles"/>
+				<aux x="1265" y="1445" name="parkedVehiclesNight"/>
+				<aux x="1150" y="1545" name="minPerHour"/>
+				<connector uid="100" angle="46.3">
+					<from>dailyTripsPardubice</from>
+					<to>vehiclesEntering</to>
+				</connector>
+				<connector uid="101" angle="270">
+					<from>diurnalTrafficShareTP189</from>
+					<to>vehiclesEntering</to>
+				</connector>
+				<connector uid="102" angle="0">
+					<from>vehiclesInTraffic</from>
+					<to>vehiclesLeaving</to>
+				</connector>
+				<connector uid="103" angle="115.3">
+					<from>actualAverageSpeed</from>
+					<to>vehiclesLeaving</to>
+				</connector>
+				<connector uid="104" angle="270">
+					<from>avgTripLengthKm</from>
+					<to>vehiclesLeaving</to>
+				</connector>
+				<connector uid="105" angle="25">
+					<from>vehiclesInTraffic</from>
+					<to>Incident_Occurrence_Rate</to>
+				</connector>
+				<connector uid="106" angle="46.5">
+					<from>baseAccidentRate</from>
+					<to>Incident_Occurrence_Rate</to>
+				</connector>
+				<connector uid="107" angle="258.7">
+					<from>weatherAccidentMultiplier</from>
+					<to>Incident_Occurrence_Rate</to>
+				</connector>
+				<connector uid="108" angle="55.6">
+					<from>congestionIncidentFactor</from>
+					<to>Incident_Occurrence_Rate</to>
+				</connector>
+				<connector uid="109" angle="25">
+					<from>Active_Traffic_Incidents</from>
+					<to>Incident_Clearance_Rate</to>
+				</connector>
+				<connector uid="110" angle="256">
+					<from>avgIncidentClearanceTime</from>
+					<to>Incident_Clearance_Rate</to>
+				</connector>
+				<connector uid="111" angle="317">
+					<from>vehiclesInTraffic</from>
+					<to>CO2_Emission_Rate</to>
+				</connector>
+				<connector uid="112" angle="315">
+					<from>actualAverageSpeed</from>
+					<to>CO2_Emission_Rate</to>
+				</connector>
+				<connector uid="113" angle="309.8">
+					<from>speedCO2FactorKgPerKm</from>
+					<to>CO2_Emission_Rate</to>
+				</connector>
+				<connector uid="114" angle="45">
+					<from>heavyVehicleShare</from>
+					<to>CO2_Emission_Rate</to>
+				</connector>
+				<connector uid="115" angle="100.3">
+					<from>coldStartTempFactor</from>
+					<to>CO2_Emission_Rate</to>
+				</connector>
+				<connector uid="116" angle="143.7">
+					<from>evFleetShare</from>
+					<to>CO2_Emission_Rate</to>
+				</connector>
+				<connector uid="117" angle="0">
+					<from>registeredVehicles</from>
+					<to>parkedVehiclesNight</to>
+				</connector>
+				<connector uid="118" angle="354">
+					<from>hourOfDay</from>
+					<to>diurnalTrafficShareTP189</to>
+				</connector>
+				<connector uid="119" angle="321.3">
+					<from>baseRoadCapacity</from>
+					<to>effectiveRoadCapacity</to>
+				</connector>
+				<connector uid="120" angle="232.9">
+					<from>weatherCapacityFactor</from>
+					<to>effectiveRoadCapacity</to>
+				</connector>
+				<connector uid="432" angle="196.8">
+					<from>incidentCapacityFactor</from>
+					<to>effectiveRoadCapacity</to>
+				</connector>
+				<connector uid="122" angle="294.6">
+					<from>vehiclesInTraffic</from>
+					<to>volumeToCapacityRatio</to>
+				</connector>
+				<connector uid="123" angle="24.4">
+					<from>effectiveRoadCapacity</from>
+					<to>volumeToCapacityRatio</to>
+				</connector>
+				<connector uid="124" angle="322.1">
+					<from>freeFlowSpeed</from>
+					<to>actualAverageSpeed</to>
+				</connector>
+				<connector uid="125" angle="24.4">
+					<from>volumeToCapacityRatio</from>
+					<to>actualAverageSpeed</to>
+				</connector>
+				<connector uid="126" angle="296.6">
+					<from>avgTripLengthKm</from>
+					<to>averageCommuteDelayMin</to>
+				</connector>
+				<connector uid="127" angle="90">
+					<from>actualAverageSpeed</from>
+					<to>averageCommuteDelayMin</to>
+				</connector>
+				<connector uid="128" angle="33.7">
+					<from>freeFlowSpeed</from>
+					<to>averageCommuteDelayMin</to>
+				</connector>
+				<connector uid="129" angle="148.7">
+					<from>minPerHour</from>
+					<to>averageCommuteDelayMin</to>
+				</connector>
+				<connector uid="130" angle="12">
+					<from>hourOfDay</from>
+					<to>hourlyPrecipitationMm</to>
+				</connector>
+				<connector uid="433" angle="228.4">
+					<from>hourlyPrecipitationMm</from>
+					<to>weatherCapacityFactor</to>
+				</connector>
+				<connector uid="132" angle="294">
+					<from>rainCapacitySensitivity</from>
+					<to>weatherCapacityFactor</to>
+				</connector>
+				<connector uid="133" angle="327.5">
+					<from>hourlyPrecipitationMm</from>
+					<to>weatherAccidentMultiplier</to>
+				</connector>
+				<connector uid="134" angle="234.5">
+					<from>rainAccidentSensitivity</from>
+					<to>weatherAccidentMultiplier</to>
+				</connector>
+				<connector uid="135" angle="13.4">
+					<from>volumeToCapacityRatio</from>
+					<to>congestionIncidentFactor</to>
+				</connector>
+				<connector uid="136" angle="186.6">
+					<from>capacityLossPerIncident</from>
+					<to>incidentCapacityFactor</to>
+				</connector>
+				<connector uid="137" angle="249">
+					<from>Active_Traffic_Incidents</from>
+					<to>incidentCapacityFactor</to>
+				</connector>
+				<connector uid="138" angle="319.8">
+					<from>actualAverageSpeed</from>
+					<to>speedCO2FactorKgPerKm</to>
+				</connector>
+				<text_box font_weight="bold" font_size="22pt" uid="20" x="480" y="1840" width="400" height="50">Výsledky simulace</text_box>
+				<text_box text_align="left" font_size="11pt" uid="21" x="80" y="1905" width="1200" height="65">Níže jsou zobrazeny výstupní časové řady a tabulka hodinových hodnot pro 24 hodin (0–24 h) v Pardubicích. V pravém dolním boxu jsou připraveni „duchové“ (Alias) klíčových parametrů pro rychlé přepínání scénářů a experimentování bez nutnosti vracet se do struktury SFD modelu.</text_box>
+				<stacked_container uid="22" x="80" y="1985" width="580" height="310">
+					<graph width="580" height="310" type="time_series" show_grid="true" isee:tick_type="none" include_units_in_legend="true" plot_numbers="false" isee:label_pie_slices="false" isee:show_pie_borders="true" num_x_grid_lines="0" num_y_grid_lines="0" num_x_labels="0" num_y_labels="0" isee:fill_intensity="0.1" isee:allow_zero_axis="true" left_axis_multi_scale="true" left_axis_auto_scale="true" left_include_units="true" right_axis_multi_scale="true" right_axis_auto_scale="true" right_include_units="true">
+						<plot color="red" isee:keep_zero_visible="true" pen_width="2" index="0" show_y_axis="true">
+							<entity name="Active_Traffic_Incidents"/>
+						</plot>
+						<plot color="blue" pen_style="dashed" isee:keep_zero_visible="true" pen_width="2" index="0" right_axis="true" show_y_axis="true">
+							<entity name="actualAverageSpeed"/>
+						</plot>
+					</graph>
+				</stacked_container>
+				<stacked_container uid="23" x="690" y="1985" width="590" height="310">
+					<graph width="590" height="310" type="time_series" show_grid="true" isee:tick_type="none" include_units_in_legend="true" plot_numbers="false" isee:label_pie_slices="false" isee:show_pie_borders="true" num_x_grid_lines="0" num_y_grid_lines="0" num_x_labels="0" num_y_labels="0" isee:fill_intensity="0.1" isee:allow_zero_axis="true" left_axis_multi_scale="true" left_axis_auto_scale="true" left_include_units="true" right_axis_multi_scale="true" right_axis_auto_scale="true" right_include_units="true">
+						<plot color="#008F44" isee:keep_zero_visible="true" pen_width="2" index="0" show_y_axis="true">
+							<entity name="Cumulative_CO2_Emissions"/>
+						</plot>
+						<plot color="#FF7F00" pen_style="dot_dashed" isee:keep_zero_visible="true" pen_width="2" index="0" right_axis="true" show_y_axis="true">
+							<entity name="CO2_Emission_Rate"/>
+						</plot>
+					</graph>
+				</stacked_container>
+				<stacked_container uid="24" x="80" y="2320" width="760" height="330">
+					<table interval="1" report_balances="beginning" report_flows="instantaneous" width="760" height="330">
+						<item type="time"/>
+						<item>
+							<entity name="vehiclesInTraffic"/>
+						</item>
+						<item>
+							<entity name="actualAverageSpeed"/>
+						</item>
+						<item>
+							<entity name="Active_Traffic_Incidents"/>
+						</item>
+						<item>
+							<entity name="CO2_Emission_Rate"/>
+						</item>
+						<item>
+							<entity name="Cumulative_CO2_Emissions"/>
+						</item>
+					</table>
+				</stacked_container>
+				<graphics_frame border_width="thin" border_style="solid" fill="none" uid="25" x="870" y="2320" width="410" height="330">
+					<image width="0" height="0" size_to_parent="false" isee:transparency="0"/>
+				</graphics_frame>
+				<text_box font_weight="bold" text_align="left" font_size="11pt" uid="251" x="885" y="2330" width="380" height="50">Duchové parametrů (Alias) pro testování scénářů:</text_box>
+				<button label="Zpět na Model" uid="64" x="1005" y="2585" width="140" height="36">
+					<actions>
+						<action target="stock_flow" zoom="100" entity=".Active_Traffic_Incidents">navigate</action>
+					</actions>
+				</button>
+				<text_box font_style="italic" text_align="right" font_size="16pt" uid="26" x="1000" y="2680" width="280" height="45">Strana 3 - Výsledky</text_box>
+				<text_box font_weight="bold" font_size="22pt" uid="30" x="430" y="2780" width="500" height="50">Testování a citlivost modelu</text_box>
+				<text_box text_align="left" font_size="10.5pt" padding="8" border_width="thin" border_style="solid" uid="31" x="80" y="2845" width="1200" height="165">Provedené verifikační a citlivostní testy:
+1) Test numerické robustnosti (DT a integrační metoda): Porovnání Euler DT=1/4, 1/8, 1/16 oproti RK4 DT=1/4 a 1/16. V průměrném dni (Scénář 1) má Euler DT=1/4 chybu pouhých +0,03 % u CO2 (363,81 t vs. 363,70 t). V zátěžovém dešti (Scénář 2) s prudkou nelinearitou BPR (V/C^4) Euler DT=1/4 tlumí špičku kolony (-7,89 % CO2 oproti RK4 DT=1/16), kdežto RK4 DT=1/4 dosahuje chyby jen -0,03 %.
+2) Citlivostní analýza (tlačítko S-Run): V Model Analysis Tools jsou přednastaveny 2 analýzy — Citlivost_Doba_Odklizeni_IZS (0,3–1,2 h; 5 běhů) a Citlivost_Podil_Elektromobilu (1,2–50 %; 5 běhů). Klikněte na S-Run pro vykreslení křivek do obou komparativních grafů níže.
+3) Test extrémních podmínek: Nulová poptávka (0 vozidel -&gt; 0 incidentů, 0 kg CO2, bez NaN); extrémní průtrž 15 mm/h po 24 h -&gt; kapacita bezpečně omezena stropem 0,72, rychlost 5 km/h, bez záporných hladin.</text_box>
+				<stacked_container uid="32" x="80" y="3030" width="580" height="280">
+					<graph width="580" height="280" comparative="true" type="time_series" show_grid="true" isee:tick_type="none" include_units_in_legend="false" plot_numbers="false" isee:label_pie_slices="false" isee:show_pie_borders="true" num_x_grid_lines="0" num_y_grid_lines="0" num_x_labels="0" num_y_labels="0" isee:fill_intensity="0.1" isee:allow_zero_axis="true" left_axis_multi_scale="true" left_axis_auto_scale="true" left_include_units="true" right_axis_multi_scale="true" right_axis_auto_scale="true" right_include_units="true">
+						<plot color="red" isee:keep_zero_visible="true" pen_width="2" index="0" show_y_axis="true">
+							<entity name="Active_Traffic_Incidents"/>
+						</plot>
+					</graph>
+				</stacked_container>
+				<stacked_container uid="33" x="690" y="3030" width="590" height="280">
+					<graph width="590" height="280" comparative="true" type="time_series" show_grid="true" isee:tick_type="none" include_units_in_legend="false" plot_numbers="false" isee:label_pie_slices="false" isee:show_pie_borders="true" num_x_grid_lines="0" num_y_grid_lines="0" num_x_labels="0" num_y_labels="0" isee:fill_intensity="0.1" isee:allow_zero_axis="true" left_axis_multi_scale="true" left_axis_auto_scale="true" left_include_units="true" right_axis_multi_scale="true" right_axis_auto_scale="true" right_include_units="true">
+						<plot color="blue" isee:keep_zero_visible="true" pen_width="2" index="0" show_y_axis="true">
+							<entity name="Cumulative_CO2_Emissions"/>
+						</plot>
+					</graph>
+				</stacked_container>
+				<text_box text_align="left" font_size="10.5pt" padding="8" border_width="thin" border_style="solid" uid="34" x="80" y="3330" width="1200" height="280">Interpretace citlivostní analýzy — odhalení bodu zlomu (Tipping Point):
+• Doba odklízení incidentu (avgIncidentClearanceTime: 18 -&gt; 27 -&gt; 39 -&gt; 54 -&gt; 72 min):
+  - V průměrném dni (Scénář 1) je systém plně stabilní: emise CO2 se pohybují mezi 363,49 a 364,36 t/den, min. rychlost zůstává nad 38,3 km/h.
+  - V deštivém dni (Scénář 2) existuje ostrý nelineární bod zlomu mezi 39 a 54 minutami:
+    18 min: 0,42 inc | 29,8 km/h | 370,1 t CO2   |   27 min: 0,69 inc | 25,6 km/h | 373,2 t CO2   |   39 min: 1,20 inc | 15,5 km/h | 391,1 t CO2
+    54 min: 2,56 inc |  5,0 km/h | 502,2 t CO2 (KOLAPS!)   |   72 min: 3,62 inc |  5,0 km/h | 519,7 t CO2 (KOLAPS!)
+• Podíl elektromobilů (evFleetShare: 1,2 % -&gt; 10 % -&gt; 25 % -&gt; 40 % -&gt; 50 %):
+  Působí čistě lineárně na snížení emisí (363,8 t -&gt; 331,4 t -&gt; 276,2 t -&gt; 220,9 t -&gt; 184,1 t CO2/den; -49,4 %), avšak neřeší vznik kolon ani riziko nehod.
+• Základní míra nehodovosti (baseAccidentRate +-50 % v dešti): Při zvýšení o +25 % síť rovněž kolabuje na 5 km/h (500,3 t CO2).</text_box>
+				<text_box font_style="italic" text_align="right" font_size="16pt" uid="35" x="1000" y="3625" width="280" height="45">Strana 4 - Testování</text_box>
+				<text_box font_weight="bold" font_size="22pt" uid="40" x="480" y="3720" width="400" height="50">Porovnání scénářů</text_box>
+				<text_box text_align="left" font_size="10.5pt" padding="8" border_width="thin" border_style="solid" uid="41" x="80" y="3785" width="1200" height="175">Přehled změn parametrů mezi scénáři:
+• Scénář 1 (Průměrný den — Baseline): hourlyPrecipitationMm = 0,0633 mm/h (konstantní průměr 554,8 mm/rok), avgIncidentClearanceTime = 0,65 h (39 min), evFleetShare = 0,012 (1,2 %).
+• Scénář 2 (Deštivý den ve špičce): hourlyPrecipitationMm změněno na 24h profil frontálního deště (23,2 mm/den; hodnoty 0..24h: 0, 0, 0, 0, 0, 0.2, 0.8, 3.2, 4.2, 2.0, 0.5, 0, 0, 0.2, 1.5, 3.8, 4.4, 2.0, 0.4, 0, 0, 0, 0, 0, 0). Ostatní parametry shodné se Scénářem 1.
+• Scénář 3 (TIM 24 min + 25 % BEV v průměrném dni): avgIncidentClearanceTime sníženo z 0,65 na 0,40 h (-38,5 %), evFleetShare zvýšeno z 0,012 na 0,25 (25 %), srážky 0,0633 mm/h. (V doplňkovém běhu S3B aplikováno na deštivý profil ze Scénáře 2).</text_box>
+				<graphics_frame fill="none" uid="42" x="80" y="3980" width="580" height="280">
+					<image width="0" height="0" size_to_parent="false" isee:transparency="0"/>
+				</graphics_frame>
+				<text_box font_style="italic" uid="421" x="100" y="4085" width="540" height="70">Slot pro vložený screenshot komparativního grafu Scénář 1 vs. 2 vs. 3:
+Active_Traffic_Incidents &amp; actualAverageSpeed (zaškrtněte Embed in Model File).</text_box>
+				<graphics_frame fill="none" uid="43" x="690" y="3980" width="590" height="280">
+					<image width="0" height="0" size_to_parent="false" isee:transparency="0"/>
+				</graphics_frame>
+				<text_box font_style="italic" uid="431" x="710" y="4085" width="550" height="70">Slot pro vložený screenshot komparativního grafu Scénář 1 vs. 2 vs. 3:
+Cumulative_CO2_Emissions za 24 hodin (zaškrtněte Embed in Model File).</text_box>
+				<text_box text_align="left" font_size="10.5pt" padding="8" border_width="thin" border_style="solid" uid="44" x="80" y="4280" width="1200" height="210">Souhrn výsledků scénářů (Pardubice, 24 h, Euler DT=1/4):
+• Scénář 1 (Průměrný den): Max. 4 211 voz. | Min. rychlost 39,0 km/h | Max. zdržení 1,3 min | Max. 0,382 inc. (5,88/den) | Emise 363,81 t CO2.
+• Scénář 2 (Deštivý den):  Max. 7 059 voz. | Min. rychlost 15,5 km/h | Max. zdržení 29,5 min | Max. 1,197 inc. (10,48/den) | Emise 391,10 t CO2 (+7,5 %).
+• Scénář 3 (TIM+BEV prům.): Max. 4 185 voz. | Min. rychlost 39,3 km/h | Max. zdržení 1,2 min | Max. 0,239 inc. (5,86/den) | Emise 275,99 t CO2 (-24,1 %).
+• Scénář 3B (TIM+BEV déšť): Max. 5 081 voz. | Min. rychlost 27,2 km/h | Max. zdržení 9,4 min | Max. 0,596 inc. (8,62/den) | Emise 282,32 t CO2 (-27,8 % vs S2).
+
+Hlavní rozdíly: Déšť za stejného počtu jízd způsobí dopravní hysterezi v 16:00–18:00 a přidá +27,29 t CO2. Samotný TIM (24 min) vymaže 70 % této dešťové emisní přirážky a zkrátí zdržení o 20,1 min; samotných 25 % BEV sníží emise o 24,1 %, ale ponechá kolony beze změny.</text_box>
+				<text_box font_style="italic" text_align="right" font_size="16pt" uid="45" x="1000" y="4510" width="280" height="45">Strana 5 - Scénáře</text_box>
+				<text_box font_weight="bold" font_size="22pt" uid="50" x="430" y="4600" width="500" height="50">Závěr a odborné zdroje</text_box>
+				<text_box text_align="left" font_size="10.5pt" padding="8" border_width="thin" border_style="solid" uid="51" x="80" y="4665" width="1200" height="355">1. Shrnutí výsledků a odpověď na výzkumnou otázku:
+Simulace naznačuje, že v zprůměrovaném dni v Pardubicích vzniká přibližně 5,88 pruhy blokujících incidentů a silniční doprava vyprodukuje 363,81 t CO2. Intenzivní déšť ve špičkách ztrojnásobuje vrchol aktivních incidentů (+213 %), sráží průjezdnou rychlost na 15,5 km/h (zdržení 29,5 min) a zvyšuje denní emise o +7,5 % (+27,3 t CO2) čistě vlivem kongesce. Odpověď na VO: Zrychlení odklízení nehod na 24 minut (TIM) je zásadní pro stabilitu a plynulost sítě (v dešti zkracuje zdržení o 68 % a brání pádu za 45minutový bod zlomu), zatímco elektrifikace (25 % BEV) přináší strukturální snížení emisí o 24,1 % každý den v roce; nejvyššího efektu dosahuje jejich kombinace (-27,8 % CO2 a -50 % aktivních nehod v zátěži).
+
+2. Strategická doporučení pro statutární město Pardubice:
+• Zavést městský protokol rychlého odklízení (TIM) u kritických uzlů I/37 Paramo a Dražkovice (využití digitálního hlášení ČKP Bouračka.cz, pohotovostní odtah a kamerová detekce) s cílem udržet dobu blokace pod 30 minutami.
+• Podpořit elektrifikaci městského vozového parku a přestup na trolejbusovou MHD (43 % výkonů MHD v kraji v roce 2024) v kombinaci se záchytnými parkovišti P+R.
+
+3. Omezení modelu:
+Model pracuje agregovaně na úrovni celé městské sítě (nezachycuje mikroskopické řízení jednotlivých křižovatek a konkrétní objízdné trasy), používá spojitou hladinu incidentů namísto diskrétních stochastických událostí, opírá se o agregované kalibrační parametry (kapacita sítě, podíl studené jízdy) a nezahrnuje dlouhodobé stavební uzavírky ani zimní sněhové kalamity.</text_box>
+				<text_box text_align="left" font_size="9.5pt" padding="8" border_width="thin" border_style="solid" uid="52" x="80" y="5040" width="1200" height="325">Použité odborné a datové zdroje (datum citace: 22. 11. 2026):
+[1] Ředitelství silnic a dálnic ČR (ŘSD) &amp; ČSÚ: Celostátní sčítání dopravy 2020 a 2025 — intenzity v Pardubickém kraji a městě Pardubice (I/37, II/324, I/36). Dostupné z: https://www.rsd.cz/silnice-a-dalnice/scitani-dopravy a https://zpravy.kurzy.cz/643435-intenzita-silnicni-dopravy-v-pardubickem-kraji-v-roce-2020-nejzatizenejsi-komunikace-mezi-cechy-a/
+[2] Statutární město Pardubice: Plán udržitelné městské mobility (PUMM) — Návrhová část (nehodovost 742/rok, zatížení centra 82 098 voz/den). Dostupné z: https://pardubice.eu/data/files/65/884/f74b543e16af61140b935777158aa690885/navrhova-cast.pdf
+[3] Český statistický úřad (ČSÚ) &amp; Policie ČR: Dopravní nehody v Pardubickém kraji v roce 2025 (okres Pardubice 1 383 nehod; 321,5 tis. OA v kraji). Dostupné z: https://csu.gov.cz/pak/dopravni-nehody-v-pardubickem-kraji-v-roce-2025 a https://policie.gov.cz/statistiky-dopravni-nehodovosti
+[4] Česká kancelář pojistitelů (ČKP): Výroční zpráva 2025 &amp; tiskové zprávy 2026 (265–271 tis. pojistných škod/rok, limit 200 000 Kč, Bouračka.cz). Dostupné z: https://www.ckp.cz/images/clanky/cz/O_nas/Vyrocni_zpravy/2025_CKP_VZ.pdf
+[5] Český hydrometeorologický ústav (ČHMÚ): Stanice Pardubice, letiště (H3PARD01) — klimatologický normál 1991–2020 (554,8 mm/rok; 9,8 °C) &amp; Open-Meteo Historical Weather API. Dostupné z: https://www.chmi.cz/w/h3pard01-pardubice-letiste a https://open-meteo.com/en/docs/historical-weather-api
+[6] U.S. DOT Federal Highway Administration (FHWA): Road Weather Management, Highway Capacity Manual (Exhibit 10-17) &amp; Traffic Incident Management (TIM) Performance Measures. Dostupné z: https://ops.fhwa.dot.gov/weather/roadimpact.htm a https://ops.fhwa.dot.gov/publications/fhwahop15028/step4.htm
+[7] European Environment Agency (EEA): EMEP/EEA Air Pollutant Emission Inventory Guidebook 2023/2025 (Ch. 1.A.3.b.i–iv Road Transport / COPERT). Dostupné z: https://copert.emisia.com/wp-content/uploads/2025/10/1.A.3.b.i-iv-Road-transport-2025.pdf
+[8] Centrum dopravního výzkumu (CDV — Čistá doprava), SDA &amp; OECD Economic Surveys: Czechia 2025 (stáří vozového parku 15,9–16,4 let, podíl BEV 1,2 % v 10/2026). Dostupné z: https://www.cistadoprava.cz/aktuality/tiskove-zpravy/ a https://www.oecd.org/en/publications/oecd-economic-surveys-czechia-2025_7a70af5c-en/full-report/transitioning-to-net-zero_a2c1b156.html</text_box>
+				<text_box font_style="italic" text_align="right" font_size="16pt" uid="53" x="1000" y="5385" width="280" height="45">Strana 6 - Závěr, Zdroje</text_box>
+				<alias color="blue" font_style="italic" uid="60" x="945" y="2415" width="18" height="18">
+					<of>avgIncidentClearanceTime</of>
+				</alias>
+				<alias color="blue" font_style="italic" uid="61" x="1155" y="2415" width="18" height="18">
+					<of>evFleetShare</of>
+				</alias>
+				<alias color="blue" font_style="italic" uid="62" x="945" y="2510" width="18" height="18">
+					<of>hourlyPrecipitationMm</of>
+				</alias>
+				<alias color="blue" font_style="italic" uid="63" x="1155" y="2510" width="18" height="18">
+					<of>baseAccidentRate</of>
+				</alias>
+			</view>
+		</views>
+	</model>
+</xmile>
+
